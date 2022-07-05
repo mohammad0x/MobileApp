@@ -1,7 +1,6 @@
 from django.test import TestCase , Client
 from rest_framework.test import RequestsClient
 import json
-# import urllib, json
 from urllib.request import urlopen
 from django.http import JsonResponse
 
