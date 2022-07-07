@@ -10,63 +10,69 @@ from django.conf import settings
 import os
 from django.views.decorators.csrf import csrf_exempt
 
+
 # Create your views here.
 @api_view(['GET'])
 def items(request):
     data = []
     try:
-        with open('static/data.csv',encoding='utf-8') as csvf:
+        with open('static/data.csv', encoding='utf-8') as csvf:
             csvReader = csv.DictReader(csvf)
-            for index,rows in enumerate(csvReader):
+            for index, rows in enumerate(csvReader):
                 data.append(rows)
-        serializer = ItemSerializer(data,many=True)
-        if len(data)>0:
-            return JsonResponse({'data':serializer.data},status=200)
+        serializer = ItemSerializer(data, many=True)
+        if len(data) > 0:
+            return JsonResponse({'data': serializer.data}, status=200)
         else:
-            return JsonResponse({'data':'no data'},status=404)
+            return JsonResponse({'data': 'no data'}, status=404)
     except Exception as e:
         return JsonResponse({
             'data': 'server error'
-        },status=500)
+        }, status=500)
+
 
 @api_view(['GET'])
-def item(request,row):
-    data=[]
+def item(request, row):
+    data = []
     try:
-        with open('static/data.csv',encoding='utf-8') as csvf:
+        with open('static/data.csv', encoding='utf-8') as csvf:
             csvReader = csv.DictReader(csvf)
-            for index,rows in enumerate(csvReader):
+            for index, rows in enumerate(csvReader):
                 data.append(rows)
         serializer = ItemSerializer(data[row])
-        if len(data)>0:
-            return JsonResponse({'data':serializer.data})
+        if len(data) > 0:
+            return JsonResponse({'data': serializer.data})
         else:
-            return JsonResponse({'data':'no data'})
+            return JsonResponse({'data': 'no data'})
     except Exception as e:
-        return JsonResponse({'data':'error'})
+        return JsonResponse({'data': 'error'})
+
+
 @csrf_exempt
 @api_view(["POST"])
 def addItem(request):
-    headersCSV = ['title','description','image']      
-    data=[]
-    item = ItemSerializer(data = request.data)
+    headersCSV = ['title', 'description', 'image']
+    data = []
+    item = ItemSerializer(data=request.data)
     try:
         if item.is_valid():
-            with open('static/data.csv','a',encoding='utf-8') as csvf:
+            with open('static/data.csv', 'a', encoding='utf-8') as csvf:
                 new_row = csv.DictWriter(csvf, fieldnames=headersCSV)
                 new_row.writerow(request.data)
-                return JsonResponse({'data':'row appended'},status=201)
+                return JsonResponse({'data': 'row appended'}, status=201)
         else:
             messages = item.errors
             return JsonResponse({
-                data:"title and image is required"
-            },status=400)
+                data: "title and image is required"
+            }, status=400)
     except Exception as e:
         print(str(e))
-        return JsonResponse({'data':str(e)},status=400)
+        return JsonResponse({'data': str(e)}, status=400)
+
+
 @csrf_exempt
 @api_view(["DELETE"])
-def deleteRow(request,rowId):
+def deleteRow(request, rowId):
     try:
         lines = list()
         with open('static/data.csv', 'r') as readFile:
@@ -80,11 +86,47 @@ def deleteRow(request,rowId):
             writer.writerows(lines)
 
         return JsonResponse({
-                "message":"row deleted succesfully"
-            },status=202)
+            "message": "row deleted succesfully"
+        }, status=202)
 
     except Exception as e:
-       return JsonResponse({
-           'data':str(e)
-       },status=400)
+        return JsonResponse({
+            'data': str(e)
+        }, status=400)
 
+
+@csrf_exempt
+@api_view(["PUT"])
+def update(request,rowid):
+   serializer = ItemSerializer(data=request.data)
+   try:
+       if serializer.is_valid():
+            lines = list()
+            with open('static/data.csv', 'r') as readFile:
+                reader = csv.reader(readFile)
+                if rowid > len(reader):
+                    return JsonResponse({
+                        'message':'not found'
+                    },status=404)
+                for index,row in enumerate(reader):
+                    print(index,rowid)
+                    if index == rowid:
+                        lines.append(list(request.data.values()))
+                    else:
+                        lines.append(row)
+                print(lines)
+            with open('static/data.csv', 'w') as writeFile:
+                writer = csv.writer(writeFile)
+                writer.writerows(lines)
+
+            return JsonResponse({
+                "message": "row updated succesfully"
+            }, status=202)
+       else:
+           return JsonResponse({
+                "message": "data is not valid"
+            }, status=400)
+   except Exception as e:
+        return JsonResponse({
+            'data': str(e)
+        }, status=500)
